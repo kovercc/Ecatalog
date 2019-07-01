@@ -133,7 +133,7 @@ namespace Ecatalog.ConsoleApp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Enter the ISBN code of the book:.
+        ///   Looks up a localized string similar to Enter the ISBN code of the book (GUID format only):.
         /// </summary>
         internal static string AskISBN {
             get {
