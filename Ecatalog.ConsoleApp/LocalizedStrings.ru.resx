@@ -120,6 +120,9 @@
   <data name="AddMandatory" xml:space="preserve">
     <value>Для добавления книги в каталог, обязательно требуется указать все поля</value>
   </data>
+  <data name="And" xml:space="preserve">
+    <value>и</value>
+  </data>
   <data name="AnswerYes" xml:space="preserve">
     <value>Да</value>
   </data>
@@ -204,6 +207,9 @@ IMPORT_BINARY - импортировать книги из dat-файла в э�
   </data>
   <data name="ImportDone" xml:space="preserve">
     <value>Импорт из файла завершен</value>
+  </data>
+  <data name="PreAuthors" xml:space="preserve">
+    <value>авторы:</value>
   </data>
   <data name="ShortList" xml:space="preserve">
     <value>Список книг из каталога по запросу</value>

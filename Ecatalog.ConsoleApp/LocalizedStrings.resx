@@ -120,6 +120,9 @@
   <data name="AddMandatory" xml:space="preserve">
     <value>To add a book to the catalog, you must specify all the fields</value>
   </data>
+  <data name="And" xml:space="preserve">
+    <value>and</value>
+  </data>
   <data name="AnswerYes" xml:space="preserve">
     <value>Yes</value>
   </data>
@@ -204,6 +207,9 @@ IMPORT_BINARY - import books from a dat file into an electronic catalog</value>
   </data>
   <data name="ImportDone" xml:space="preserve">
     <value>Import from the file has done</value>
+  </data>
+  <data name="PreAuthors" xml:space="preserve">
+    <value>by:</value>
   </data>
   <data name="ShortList" xml:space="preserve">
     <value>List of books from the catalog on request</value>

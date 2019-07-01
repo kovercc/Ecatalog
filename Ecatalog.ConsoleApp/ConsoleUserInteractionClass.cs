@@ -62,7 +62,7 @@ namespace Ecatalog.ConsoleApp
                             out string programmingLanguageV, out ReaderLevel? readerLevelV, out string languageV, out BookRating? bookRating);
                 var books = eCatalog.GetBooks(isbnV, nameV, authors, yearOfPublicationV, programmingLanguageV, readerLevelV, languageV, bookRating);
                 _logger.Info($"{LocalizedStrings.BookRetrieved} {books.Count()}. {LocalizedStrings.ShortList}:");
-                _logger.Info(books.Select(s => $"{Environment.NewLine}ISBN:'{s.ISBN}', '{s.Name}' by: {string.Join(" and ", s.Authors?.Select(a => a?.ToShortString()).ToArray())}"));
+                _logger.Info(books.Select(s => $"{Environment.NewLine}ISBN:'{s.ISBN}', '{s.Name}', {LocalizedStrings.PreAuthors} {string.Join($" {LocalizedStrings.And} ", s.Authors?.Select(a => a?.ToShortString()).ToArray())}"));
             }
             else if (command == Commands.EXPORT_XML)
             {
@@ -271,6 +271,7 @@ namespace Ecatalog.ConsoleApp
                 Console.WriteLine(LocalizedStrings.AskProgrammingLanguage);
                 programmingLanguageV = Console.ReadLine().Trim();
             }
+            programmingLanguageV = !string.IsNullOrEmpty(programmingLanguageV) ? programmingLanguageV : null;
 
             // Reader level
             Console.WriteLine(LocalizedStrings.AskReaderLevel);
@@ -293,6 +294,7 @@ namespace Ecatalog.ConsoleApp
                 Console.WriteLine(LocalizedStrings.AskLanguage);
                 languageV = Console.ReadLine().Trim();
             }
+            languageV = !string.IsNullOrEmpty(languageV) ? languageV : null;
 
             // Book Rating
             Console.WriteLine(LocalizedStrings.AskBookRating);

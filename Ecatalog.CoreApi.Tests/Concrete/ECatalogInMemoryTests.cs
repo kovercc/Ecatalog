@@ -251,7 +251,7 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Act
             manager.AddBook(book1);
             manager.AddBook(book2);
-            var eCatBooks = manager.GetBooks().ToArray();
+            var eCatBooks = manager.GetBooks(null, null, new Author[] { new Author{FirstName = null, LastName = null, Note = null}}, null, null, null, null, null).ToArray();
 
             var eCatBook1 = eCatBooks[0];
             var eCatBook2 = eCatBooks[1];

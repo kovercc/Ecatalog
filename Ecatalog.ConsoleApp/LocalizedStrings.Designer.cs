@@ -70,6 +70,15 @@ namespace Ecatalog.ConsoleApp {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to and.
+        /// </summary>
+        internal static string And {
+            get {
+                return ResourceManager.GetString("And", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Yes.
         /// </summary>
         internal static string AnswerYes {
@@ -300,6 +309,15 @@ namespace Ecatalog.ConsoleApp {
         internal static string ImportDone {
             get {
                 return ResourceManager.GetString("ImportDone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to by:.
+        /// </summary>
+        internal static string PreAuthors {
+            get {
+                return ResourceManager.GetString("PreAuthors", resourceCulture);
             }
         }
         
