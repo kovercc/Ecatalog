@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Ecatalog.CoreApi.Common;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Ecatalog.CoreApi.Models
 {
@@ -10,16 +13,25 @@ namespace Ecatalog.CoreApi.Models
     public class Book
     {
         /// <summary>
-        /// ISBN number (code)
+        /// Constructor
         /// </summary>
-        [Required]
-        public Guid ISBN { get; set; }
+        public Book()
+        {
+            Authors = new List<Author>();
+        }
 
         /// <summary>
-        /// Related authors array
+        /// Guid of the Book in store system
+        /// </summary>
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public Guid Id { get; set; }
+
+        /// <summary>
+        /// ISBN number
         /// </summary>
         [Required]
-        public Author[] Authors { get; set; }
+        public string ISBN { get; set; }
 
         /// <summary>
         /// Name of the book
@@ -31,8 +43,8 @@ namespace Ecatalog.CoreApi.Models
         /// Year of book publication
         /// </summary>
         [Required]
-        [Range(1900, 2019)]
-        public int YearOfPublication { get; set; }
+        [CorrectYearRange(ErrorMessage = "Year of the publication must be in range between 1900 and current year")]
+        public int? YearOfPublication { get; set; }
 
         /// <summary>
         /// Programming language in the book
@@ -44,7 +56,7 @@ namespace Ecatalog.CoreApi.Models
         /// Book Reader level
         /// </summary>
         [Required]
-        public ReaderLevel ReaderLevel { get; set; }
+        public ReaderLevel? ReaderLevel { get; set; }
 
         /// <summary>
         /// Language of the book
@@ -52,10 +64,15 @@ namespace Ecatalog.CoreApi.Models
         [Required]
         public string Language { get; set; }
 
+        ///// <summary>
+        ///// Book rating
+        ///// </summary>
+        //public BookRating? BookRating { get;}
+
         /// <summary>
-        /// Book rating
+        /// Coolection of the Authors
         /// </summary>
-        [Required]
-        public BookRating BookRating { get; set; }
+        [NotEmptyCollection(ErrorMessage = "You need to specify authors for your book")]
+        public virtual ICollection<Author> Authors { get; set; }
     }
 }

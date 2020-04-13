@@ -4,9 +4,9 @@ using Ecatalog.CoreApi.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace Ecatalog.CoreApi.Concrete
 {
@@ -18,142 +18,155 @@ namespace Ecatalog.CoreApi.Concrete
         /// <summary>
         /// Books Array in e-Catalog
         /// </summary>
-        private List<Book> _books = new List<Book>();
+        private readonly List<Book> _books = new List<Book>();
+
+        /// <summary>
+        /// Books Array in e-Catalog
+        /// </summary>
+        private readonly List<Author> _authors = new List<Author>();
+
+        /// <summary>
+        /// Add new author to e-catalog
+        /// </summary>
+        /// <param name="author">Author object with data</param>
+        /// <returns>author's guid in e-catalog</returns>
+        public Guid AddAuthor(Author author)
+        {
+            author.ValidateModel();
+            author.Id = Guid.NewGuid();
+            _authors.Add(author);
+            return author.Id;
+        }
+
+        /// <summary>
+        /// Edit author data
+        /// </summary>
+        /// <param name="updatedAuthor">updates for author in object</param>
+        public void EditAuthor(Author updatedAuthor)
+        {
+            if (updatedAuthor.Id == null)
+            {
+                throw new InvalidOperationException("Id is required for updating author.");
+            }
+            var author = _authors.Single(a => a.Id == updatedAuthor.Id);
+            if (author == null)
+            {
+                throw new InvalidOperationException($"The author with Id = '{updatedAuthor.Id}' didn't find. Check the Id and try again.");
+            }
+            UpdateChangedProperties(author, updatedAuthor);
+            author.ValidateModel();
+        }
+
+        /// <summary>
+        /// Delete author from catalog
+        /// </summary>
+        /// <param name="id">Author Id</param>
+        public void DeleteAuthor(Guid id)
+        {
+            var author = _authors.SingleOrDefault(s => s.Id == id);
+            if (author == null)
+            {
+                throw new InvalidOperationException($"The author with Id = '{id}' didn't find. Check the Id and try again.");
+            }
+            if (author.Books.Any())
+            {
+                throw new InvalidOperationException($"You coudn't delete author, because it has {author.Books.Count} related books.");
+            }
+            _authors.Remove(author);
+        }
 
         /// <summary>
         /// Add Book to e-catalog
         /// </summary>
         /// <param name="book">Book object with data</param>
-        public void AddBook(Book book)
+        public Guid AddBook(Book book)
         {
             CheckIsbn(book.ISBN);
-            var results = new List<ValidationResult>();
-            var context = new ValidationContext(book);
-            if (!Validator.TryValidateObject(book, context, results, true))
+            book.ValidateModel();
+            // Add book to catalog
+            book.Id = Guid.NewGuid();
+            _books.Add(book);
+            foreach (var author in book.Authors)
             {
-                throw new InvalidDataException(string.Join(", ", results.Select(s => s.ErrorMessage)));
+                author.Books.Add(book);
+                AddAuthor(author);
             }
-            _books.Add(new Book
-            {
-                ISBN = book.ISBN,
-                Name = book.Name,
-                Authors = book.Authors,
-                YearOfPublication = book.YearOfPublication,
-                ProgrammingLanguage = book.ProgrammingLanguage,
-                ReaderLevel = book.ReaderLevel,
-                Language = book.Language,
-                BookRating = book.BookRating
-            });
+            return book.Id;
         }
 
         /// <summary>
-        /// Edit Book in e-catalog
+        /// Update Book properties
         /// </summary>
-        /// <param name="isbn">ISBN code of the book in e-Catalog</param>
-        /// <param name="name">Name of the book</param>
-        /// <param name="authors">Array of Authors of the book</param>
-        /// <param name="yearOfPublication">The year of the publication</param>
-        /// <param name="programmingLanguage">Programming language which describes in the book</param>
-        /// <param name="readerLevel">The book reader level</param>
-        /// <param name="language">The language of the book</param>
-        /// <param name="bookRating">The book rating</param>
-        public void EditBook(Guid isbn, string name = null, Author[] authors = null, int? yearOfPublication = null, string programmingLanguage = null, ReaderLevel? readerLevel = null, string language = null, BookRating? bookRating = null)
+        /// <param name="updatedBook">Book object with updated properties</param>
+        public void EditBook(Book updatedBook)
         {
-            var book = _books.Single(a => a.ISBN == isbn);
+            if (updatedBook.ISBN == null)
+            {
+                throw new InvalidOperationException("ISBN is required for updating book.");
+            }
+            var book = _books.SingleOrDefault(a => a.ISBN == updatedBook.ISBN);
             if (book == null)
             {
-                throw new InvalidOperationException($"The book with ISBN = '{isbn}' didn't find. Check the ISBN code and try again.");
+                throw new InvalidOperationException($"The book with ISBN = '{updatedBook.ISBN}' didn't find. Check the ISBN code and try again.");
             }
-            if (name != null)
-            {
-                book.Name = name;
-            }
-            if (authors != null)
-            {
-                book.Authors = authors;
-            }
-            if (yearOfPublication != null)
-            {
-                book.YearOfPublication = (int)yearOfPublication;
-            }
-            if (programmingLanguage != null)
-            {
-                book.ProgrammingLanguage = programmingLanguage;
-            }
-            if (readerLevel != null)
-            {
-                book.ReaderLevel = (ReaderLevel)readerLevel;
-            }
-            if (language != null)
-            {
-                book.Language = language;
-            }
-            if (bookRating != null)
-            {
-                book.BookRating = (BookRating)bookRating;
-            }
+            UpdateChangedProperties(book, updatedBook);
+            book.ValidateModel();
         }
 
         /// <summary>
         /// Delete book from e-catalog
         /// </summary>
-        /// <param name="isbn">ISBN code of the Book in e-Catalog</param>
-        public void DeleteBook(Guid isbn)
+        /// <param name="bookId">Guid of the Book in e-Catalog</param>
+        public void DeleteBook(Guid bookId)
         {
-            if (!_books.Any(a => a.ISBN == isbn))
+            var book = _books.SingleOrDefault(s => s.Id == bookId);
+            if (book == null)
             {
-                throw new InvalidOperationException($"The book with ISBN = '{isbn}' didn't find. Check the ISBN code and try again.");
+                throw new InvalidOperationException($"The book with ISBN = '{bookId}' didn't find. Check the ISBN code and try again.");
             }
-            _books.Remove(_books.Single(s => s.ISBN == isbn));
+            _books.Remove(book);
+            // find book authors
+            var bookAuthors = _authors.Where(w => w.Books.Contains(book)).ToList();
+            // remove book from authors
+            bookAuthors.ForEach(a => a.Books.Remove(book));
         }
 
         /// <summary>
-        /// Get books from e-catalog by filters
+        /// Get books from e-catalog by book and author filters
         /// </summary>
-        /// <param name="isbn">ISBN code of the book in e-Catalog</param>
-        /// <param name="name">Name of the book</param>
-        /// <param name="authors">Array of Authors of the book</param>
-        /// <param name="yearOfPublication">The year of the publication</param>
-        /// <param name="programmingLanguage">Programming language which describes in the book</param>
-        /// <param name="readerLevel">The book reader level</param>
-        /// <param name="language">The language of the book</param>
-        /// <param name="bookRating">The book rating</param>
+        /// <param name="bookFilter">Book filter function</param>
+        /// <param name="authorFilter">Author filter function</param>
         /// <returns>Collection of the books from e-catalog</returns>
-        public IEnumerable<Book> GetBooks(Guid? isbn = null, string name = null, Author[] authors = null, int? yearOfPublication = null, string programmingLanguage = null, ReaderLevel? readerLevel = null, string language = null, BookRating? bookRating = null)
+        public IEnumerable<Book> GetBooks(Func<Book, bool> bookFilter = null, Func<Author, bool> authorFilter = null)
         {
-            var filteredBooks = _books.Where(w =>
-            (isbn == null || w.ISBN == isbn)
-            && (name == null || w.Name.ToLower().Contains(name.ToLower()))
-            //&& ((authors == null || !authors.Any() 
-            //|| w.Authors.Any(a => authors.Any(aut => aut.LastName?.ToLower() == a.LastName.ToLower()))
-            //|| w.Authors.Any(a => authors.Any(aut => aut.FirstName?.ToLower() == a.FirstName.ToLower())))
-            //|| w.Authors.Any(a => authors.Any(aut => aut.Note?.ToLower() == a.Note.ToLower())))
-            && (yearOfPublication == null || w.YearOfPublication == yearOfPublication)
-            && (programmingLanguage == null || w.ProgrammingLanguage == programmingLanguage)
-            && (readerLevel == null || w.ReaderLevel == readerLevel)
-            && (language == null || w.Language == language)
-            && (bookRating == null || w.BookRating == bookRating)
-            );
-            if (authors != null) {
-                var authorFilteredBooks = new List<Book>();
-                var hasAuthorFilter = false;
-                foreach (var author in authors)
-                {
-                    if (!string.IsNullOrEmpty(author.FirstName) || !string.IsNullOrEmpty(author.LastName) || !string.IsNullOrEmpty(author.Note)) {
-                        hasAuthorFilter = true;
-                        authorFilteredBooks.AddRange(filteredBooks.Where(w =>
-                               w.Authors.Any(a => authors.Any(aut => aut.LastName?.ToLower() == a.LastName.ToLower()))
-                            || w.Authors.Any(a => authors.Any(aut => aut.FirstName?.ToLower() == a.FirstName.ToLower()))
-                            || w.Authors.Any(a => authors.Any(aut => aut.Note?.ToLower() == a.Note.ToLower()))));
-                    }
-                }
-                if (hasAuthorFilter)
-                {
-                    filteredBooks = authorFilteredBooks;
-                }
+            var filteredBooks = _books.Where(bookFilter ?? (w => true));
+            if (authorFilter != null)
+            {
+                var authorsBooks = new List<Guid>();
+                _authors.Where(authorFilter).ToList().ForEach(a => authorsBooks.AddRange(a.Books.Select(s => s.Id)));             
+                filteredBooks = filteredBooks.Where(b => authorsBooks.Contains(b.Id));
             }
-            return filteredBooks.Distinct();
+            return filteredBooks;
         }
+
+        /// <summary>
+        /// Get authors from e-catalog by author and book filters
+        /// </summary>
+        /// <param name="authorFilter">Author filter function</param>
+        /// <param name="bookFilter">Book filter function</param>
+        /// <returns>Collection of the authors from e-catalog</returns>
+        public IEnumerable<Author> GetAuthors(Func<Author, bool> authorFilter = null, Func<Book, bool> bookFilter = null)
+        {
+            var filteredAuthors = _authors.Where(authorFilter ?? (w => true));
+            if (bookFilter != null)
+            {
+                var books = _books.Where(bookFilter).ToList();
+                var booksAuthors = new List<Guid>();
+                _books.Where(bookFilter).ToList().ForEach(b => booksAuthors.AddRange(b.Authors.Select(s => s.Id)));
+                filteredAuthors = filteredAuthors.Where(b => booksAuthors.Contains(b.Id));
+            }
+            return filteredAuthors;
+        } 
 
         /// <summary>
         /// Export e-catalog to xml file (.xml)
@@ -162,7 +175,8 @@ namespace Ecatalog.CoreApi.Concrete
         public void ExportCatalogToXml(string filePathAndName)
         {
             var serializer = new CommonXmlSerializer();
-            File.WriteAllText(filePathAndName, serializer.ObjectToString(_books));
+            File.WriteAllText(filePathAndName,
+                serializer.ObjectToString(_books));
         }
 
         /// <summary>
@@ -181,7 +195,8 @@ namespace Ecatalog.CoreApi.Concrete
         public void ExportCatalogToBinary(string filePathAndName)
         {
             var serializer = new CommonBinarySerializer();
-            File.WriteAllText(filePathAndName, System.Text.Encoding.Default.GetString(serializer.Serialize(_books)));
+            File.WriteAllText(filePathAndName, 
+                System.Text.Encoding.Default.GetString(serializer.Serialize(_books)));
         }
 
         /// <summary>
@@ -223,11 +238,32 @@ namespace Ecatalog.CoreApi.Concrete
         /// Check ISBN number for duplicate
         /// </summary>
         /// <param name="isbn">ISBN number of the book</param>
-        private void CheckIsbn(Guid isbn)
+        private void CheckIsbn(string isbn)
         {
             if (_books.Any(a => a.ISBN == isbn))
             {
                 throw new InvalidOperationException($"The book with ISBN = '{isbn}' is already exist. You cannot add duplicate book.");
+            }
+        }     
+        private static void UpdateChangedProperties<T>(T exist, T updated, params string[] ignore) where T : class
+        {
+            if (exist != null && updated != null)
+            {
+                Type type = typeof(T);
+                var ignoreList = new List<string>(ignore);
+                foreach (PropertyInfo pi in type.GetProperties())
+                {
+                    if (!ignoreList.Contains(pi.Name))
+                    {
+                        object existValue = type.GetProperty(pi.Name).GetValue(exist, null);
+                        object updatedValue = type.GetProperty(pi.Name).GetValue(updated, null);
+
+                        if (existValue != updatedValue && (existValue == null || !existValue.Equals(updatedValue)))
+                        {
+                            type.GetProperty(pi.Name).SetValue(exist, updatedValue);
+                        }
+                    }
+                }             
             }
         }
     }

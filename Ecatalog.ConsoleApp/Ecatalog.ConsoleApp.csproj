@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="ConsoleUserInteractionClass.cs" />
     <Compile Include="Consts.cs" />
+    <Compile Include="Hepler.cs" />
     <Compile Include="LocalizedStrings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

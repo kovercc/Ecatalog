@@ -19,7 +19,7 @@ namespace Ecatalog.ConsoleApp {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class LocalizedStrings {
@@ -142,7 +142,7 @@ namespace Ecatalog.ConsoleApp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Enter the ISBN code of the book (GUID format only):.
+        ///   Looks up a localized string similar to Enter the ISBN code of the book:.
         /// </summary>
         internal static string AskISBN {
             get {
@@ -260,7 +260,7 @@ namespace Ecatalog.ConsoleApp {
         
         /// <summary>
         ///   Looks up a localized string similar to Select the command to continue:
-        ///Add - add a new book to the catalog,
+        ///ADD - add a new book to the catalog,
         ///EDIT - edit the entry in the electronic catalogue
         ///DELETE - delete a book entry from the electronic catalog
         ///GET - get a list of books from the electronic catalog (filters are available)

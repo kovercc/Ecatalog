@@ -17,25 +17,29 @@ namespace Ecatalog.ConsoleApp
         /// </summary>
         private static ILog _logger = LogManager.GetLogger("ConsoleLog");
 
+        /// <summary>
+        /// Main method
+        /// </summary>
+        /// <param name="args"></param>
         static void Main(string[] args)
         {
             InitConsoleApp();
-            var catalog = EcatalogManager.GetCatalogInMamory();
+            var catalog = EcatalogManager.GetCatalogInDb();
 
-            Console.WriteLine(LocalizedStrings.ChooseLanguage);
+            Hepler.WriteColoredLine(LocalizedStrings.ChooseLanguage, ConsoleColor.Yellow);
 
             var lang = Console.ReadLine().Trim();
             if (lang == Languages.RU || lang == Languages.EN)
             {
                 SetLocalizedStrings(lang);
             }
-            Console.WriteLine(LocalizedStrings.Welcome);
+            Hepler.WriteColoredLine(LocalizedStrings.Welcome, ConsoleColor.Green);
             while (true)
             {
                 try
                 {
                     Console.WriteLine();
-                    Console.WriteLine(LocalizedStrings.CommandsDescription);
+                    Hepler.WriteColoredLine(LocalizedStrings.CommandsDescription, ConsoleColor.Gray);
                     Console.WriteLine();
                     var command = Console.ReadLine().Trim().ToUpper();
                     ConsoleUserInteractionClass.HandleCommand(command, catalog, _logger);

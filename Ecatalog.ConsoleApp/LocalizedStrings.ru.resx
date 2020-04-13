@@ -145,7 +145,7 @@
     <value>Вы хотите добавить ещё одного автора? Напишите "Да" для этого</value>
   </data>
   <data name="AskISBN" xml:space="preserve">
-    <value>Введите ISBN код книги (GUID формат):</value>
+    <value>Введите ISBN код книги:</value>
   </data>
   <data name="AskJsonFilePathAndName" xml:space="preserve">
     <value>Укажите полный путь к файлу (например c:\Test\test.json)</value>

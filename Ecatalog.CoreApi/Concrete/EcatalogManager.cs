@@ -15,5 +15,14 @@ namespace Ecatalog.CoreApi.Concrete
         {
             return new EcatalogInMemory();
         }
+
+        /// <summary>
+        /// Get EcatalogInDb class for implement Ecatalog.CoreApi.Abstract.IEcatalogCoreApi
+        /// </summary>
+        /// <returns>EcatalogInDb class</returns>
+        public static IEcatalogCoreApi GetCatalogInDb()
+        {
+            return new EcatalogInDb();
+        }
     }
 }

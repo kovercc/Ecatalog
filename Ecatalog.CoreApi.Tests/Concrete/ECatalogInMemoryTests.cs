@@ -9,6 +9,15 @@ namespace Ecatalog.CoreApi.Tests.Concrete
     [TestClass()]
     public class ECatalogInMemoryTests
     {
+        private readonly string _testFolderPath = @"c:\Test\";
+        private readonly string _testISBN1 = "978-5-6041394-3-1";
+        private readonly string _testISBN2 = "978-5-6041395-3-1";
+
+        public ECatalogInMemoryTests()
+        {
+            System.IO.Directory.CreateDirectory(_testFolderPath);
+        }
+
         /// <summary>
         /// Check if one book added
         /// </summary>
@@ -18,15 +27,14 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Arrange
             var book = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN1,
                 Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
+            book.Authors.Add(new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" });
             var manager = EcatalogManager.GetCatalogInMamory();
 
             // Act
@@ -36,17 +44,7 @@ namespace Ecatalog.CoreApi.Tests.Concrete
 
             // Assert
             Assert.AreEqual(eCatBooks.Count(), 1);
-            Assert.AreEqual(eCatBook.ISBN, book.ISBN);
-            Assert.AreEqual(eCatBook.Name, book.Name);
-            Assert.AreEqual(eCatBook.Authors.Count(), 1);
-            Assert.AreEqual(eCatBook.Authors[0].FirstName, book.Authors[0].FirstName);
-            Assert.AreEqual(eCatBook.Authors[0].LastName, book.Authors[0].LastName);
-            Assert.AreEqual(eCatBook.Authors[0].Note, book.Authors[0].Note);
-            Assert.AreEqual(eCatBook.YearOfPublication, book.YearOfPublication);
-            Assert.AreEqual(eCatBook.ProgrammingLanguage, book.ProgrammingLanguage);
-            Assert.AreEqual(eCatBook.Language, book.Language);
-            Assert.AreEqual(eCatBook.BookRating, book.BookRating);
-            Assert.AreEqual(eCatBook.ReaderLevel, book.ReaderLevel);
+            CompareBooks(book, eCatBook);
         }
 
         /// <summary>
@@ -57,29 +55,28 @@ namespace Ecatalog.CoreApi.Tests.Concrete
         public void AddBook_IsbnIsDuplicate()
         {
             var isbn = Guid.NewGuid();
+            var author = new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" };
             // Arrange
             var book1 = new Book()
             {
-                ISBN = isbn,
+                ISBN = _testISBN1,
                 Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
+            book1.Authors.Add(author);
             var book2 = new Book()
             {
-                ISBN = isbn,
+                ISBN = _testISBN1,
                 Name = "BookName2",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
+            book2.Authors.Add(author);
             var manager = EcatalogManager.GetCatalogInMamory();
 
             // Act
@@ -93,47 +90,55 @@ namespace Ecatalog.CoreApi.Tests.Concrete
         /// Check if book edited
         /// </summary>
         [TestMethod()]
-        public void AddBook_BookEdited()
+        public void EditBook_BookEdited()
         {
             // Arrange
             var book = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN1,
                 Name = "BookName",
                 Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
             var manager = EcatalogManager.GetCatalogInMamory();
 
             // Act
             manager.AddBook(book);
-            manager.EditBook(book.ISBN, "EditBookName",
-                new Author[] { new Author { FirstName = "EditAuthorFirstName", LastName = "EditAuthorLastName", Note = "EditAuthorNote" },
-                               new Author { FirstName = "Edit2AuthorFirstName", LastName = "Edit2AuthorLastName", Note = "Edit2AuthorNote" } },
-                2010, "F#", ReaderLevel.Middle, "Russian", BookRating.Bad);
+            var addedBook = manager.GetBooks(a => a.ISBN == book.ISBN).FirstOrDefault();
+            addedBook.Name = "EditBookName";
+            addedBook.Authors = new Author[] {
+                    new Author { FirstName = "EditAuthorFirstName", LastName = "EditAuthorLastName", Note = "EditAuthorNote" },
+                    new Author { FirstName = "Edit2AuthorFirstName", LastName = "Edit2AuthorLastName", Note = "Edit2AuthorNote" }
+                };
+            addedBook.ProgrammingLanguage = "F#";
+            addedBook.YearOfPublication = 2010;
+            addedBook.Language = "Russian";
+            addedBook.ReaderLevel = ReaderLevel.Middle;
+
+            manager.EditBook(addedBook);
+
             var eCatBooks = manager.GetBooks();
 
             var eCatBook = eCatBooks.FirstOrDefault();
+            var eCatBookAuthors = eCatBook.Authors.ToArray();
 
             // Assert
             Assert.AreEqual(eCatBooks.Count(), 1);
             Assert.AreEqual(eCatBook.ISBN, book.ISBN);
             Assert.AreEqual(eCatBook.Name, "EditBookName");
             Assert.AreEqual(eCatBook.Authors.Count(), 2);
-            Assert.AreEqual(eCatBook.Authors[0].FirstName, "EditAuthorFirstName");
-            Assert.AreEqual(eCatBook.Authors[0].LastName, "EditAuthorLastName");
-            Assert.AreEqual(eCatBook.Authors[0].Note, "EditAuthorNote");
-            Assert.AreEqual(eCatBook.Authors[1].FirstName, "Edit2AuthorFirstName");
-            Assert.AreEqual(eCatBook.Authors[1].LastName, "Edit2AuthorLastName");
-            Assert.AreEqual(eCatBook.Authors[1].Note, "Edit2AuthorNote");
+            Assert.AreEqual(eCatBookAuthors[0].FirstName, "EditAuthorFirstName");
+            Assert.AreEqual(eCatBookAuthors[0].LastName, "EditAuthorLastName");
+            Assert.AreEqual(eCatBookAuthors[0].Note, "EditAuthorNote");
+            Assert.AreEqual(eCatBookAuthors[1].FirstName, "Edit2AuthorFirstName");
+            Assert.AreEqual(eCatBookAuthors[1].LastName, "Edit2AuthorLastName");
+            Assert.AreEqual(eCatBookAuthors[1].Note, "Edit2AuthorNote");
             Assert.AreEqual(eCatBook.YearOfPublication, 2010);
             Assert.AreEqual(eCatBook.ProgrammingLanguage, "F#");
             Assert.AreEqual(eCatBook.Language, "Russian");
-            Assert.AreEqual(eCatBook.BookRating, BookRating.Bad);
             Assert.AreEqual(eCatBook.ReaderLevel, ReaderLevel.Middle);
         }
 
@@ -146,48 +151,35 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Arrange
             var book1 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN1,
                 Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
+            book1.Authors.Add(new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" });
             var book2 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN2,
                 Name = "BookName2",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName2", LastName = "AuthorLastName2", Note = "AuthorNote2" } },
                 ProgrammingLanguage = "F#",
                 YearOfPublication = 2010,
                 Language = "English",
-                BookRating = BookRating.Bad,
                 ReaderLevel = ReaderLevel.Elementary
             };
+            book2.Authors.Add(new Author { FirstName = "AuthorFirstName2", LastName = "AuthorLastName2", Note = "AuthorNote2" });
             var manager = EcatalogManager.GetCatalogInMamory();
 
             // Act
             manager.AddBook(book1);
-            manager.AddBook(book2);
-            manager.DeleteBook(book2.ISBN);
+            var addedBook2Id = manager.AddBook(book2);
+            manager.DeleteBook(addedBook2Id);
             var eCatBooks = manager.GetBooks();
             var eCatBook = eCatBooks.FirstOrDefault();
 
             // Assert
-            Assert.AreEqual(eCatBooks.Count(), 1);
-            Assert.AreEqual(eCatBook.ISBN, book1.ISBN);
-            Assert.AreEqual(eCatBook.Name, book1.Name);
-            Assert.AreEqual(eCatBook.Authors.Count(), 1);
-            Assert.AreEqual(eCatBook.Authors[0].FirstName, book1.Authors[0].FirstName);
-            Assert.AreEqual(eCatBook.Authors[0].LastName, book1.Authors[0].LastName);
-            Assert.AreEqual(eCatBook.Authors[0].Note, book1.Authors[0].Note);
-            Assert.AreEqual(eCatBook.YearOfPublication, book1.YearOfPublication);
-            Assert.AreEqual(eCatBook.ProgrammingLanguage, book1.ProgrammingLanguage);
-            Assert.AreEqual(eCatBook.Language, book1.Language);
-            Assert.AreEqual(eCatBook.BookRating, book1.BookRating);
-            Assert.AreEqual(eCatBook.ReaderLevel, book1.ReaderLevel);
+            CompareBooks(book1, eCatBook);
         }
 
         /// <summary>
@@ -198,21 +190,10 @@ namespace Ecatalog.CoreApi.Tests.Concrete
         public void DeleteBook_DeletedFromEmptyCatalog()
         {
             // Arrange
-            var book1 = new Book()
-            {
-                ISBN = Guid.NewGuid(),
-                Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
-                ProgrammingLanguage = "C#",
-                YearOfPublication = 2009,
-                Language = "English",
-                BookRating = BookRating.Good,
-                ReaderLevel = ReaderLevel.Experienced
-            };          
             var manager = EcatalogManager.GetCatalogInMamory();
 
             // Act
-            manager.DeleteBook(book1.ISBN);
+            manager.DeleteBook(Guid.NewGuid());
 
             // Assert
         }
@@ -226,32 +207,30 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Arrange
             var book1 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN1,
                 Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
+            book1.Authors.Add(new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" });
             var book2 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN2,
                 Name = "BookName2",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName2", LastName = "AuthorLastName2", Note = "AuthorNote2" } },
                 ProgrammingLanguage = "F#",
                 YearOfPublication = 2010,
                 Language = "English",
-                BookRating = BookRating.Bad,
                 ReaderLevel = ReaderLevel.Elementary
             };
+            book2.Authors.Add(new Author { FirstName = "AuthorFirstName2", LastName = "AuthorLastName2", Note = "AuthorNote2" });
             var manager = EcatalogManager.GetCatalogInMamory();
 
             // Act
             manager.AddBook(book1);
             manager.AddBook(book2);
-            var eCatBooks = manager.GetBooks(null, null, new Author[] { new Author{FirstName = null, LastName = null, Note = null}}, null, null, null, null, null).ToArray();
+            var eCatBooks = manager.GetBooks().ToArray();
 
             var eCatBook1 = eCatBooks[0];
             var eCatBook2 = eCatBooks[1];
@@ -259,29 +238,8 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Assert
             Assert.AreEqual(eCatBooks.Count(), 2);
 
-            Assert.AreEqual(eCatBook1.ISBN, book1.ISBN);
-            Assert.AreEqual(eCatBook1.Name, book1.Name);
-            Assert.AreEqual(eCatBook1.Authors.Count(), 1);
-            Assert.AreEqual(eCatBook1.Authors[0].FirstName, book1.Authors[0].FirstName);
-            Assert.AreEqual(eCatBook1.Authors[0].LastName, book1.Authors[0].LastName);
-            Assert.AreEqual(eCatBook1.Authors[0].Note, book1.Authors[0].Note);
-            Assert.AreEqual(eCatBook1.YearOfPublication, book1.YearOfPublication);
-            Assert.AreEqual(eCatBook1.ProgrammingLanguage, book1.ProgrammingLanguage);
-            Assert.AreEqual(eCatBook1.Language, book1.Language);
-            Assert.AreEqual(eCatBook1.BookRating, book1.BookRating);
-            Assert.AreEqual(eCatBook1.ReaderLevel, book1.ReaderLevel);
-
-            Assert.AreEqual(eCatBook2.ISBN, book2.ISBN);
-            Assert.AreEqual(eCatBook2.Name, book2.Name);
-            Assert.AreEqual(eCatBook2.Authors.Count(), 1);
-            Assert.AreEqual(eCatBook2.Authors[0].FirstName, book2.Authors[0].FirstName);
-            Assert.AreEqual(eCatBook2.Authors[0].LastName, book2.Authors[0].LastName);
-            Assert.AreEqual(eCatBook2.Authors[0].Note, book2.Authors[0].Note);
-            Assert.AreEqual(eCatBook2.YearOfPublication, book2.YearOfPublication);
-            Assert.AreEqual(eCatBook2.ProgrammingLanguage, book2.ProgrammingLanguage);
-            Assert.AreEqual(eCatBook2.Language, book2.Language);
-            Assert.AreEqual(eCatBook2.BookRating, book2.BookRating);
-            Assert.AreEqual(eCatBook2.ReaderLevel, book2.ReaderLevel);
+            CompareBooks(book1, eCatBook1);
+            CompareBooks(book2, eCatBook2);
         }
 
         /// <summary>
@@ -293,51 +251,39 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Arrange
             var book1 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN1,
                 Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
+            var book1Author = new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" };
+            book1.Authors.Add(book1Author);
             var book2 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN2,
                 Name = "BookName2",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName2", LastName = "AuthorLastName2", Note = "AuthorNote2" },
-                                         new Author { FirstName = "AuthorFirstName3", LastName = "AuthorLastName3", Note = "AuthorNote3" }},
                 ProgrammingLanguage = "F#",
                 YearOfPublication = 2010,
                 Language = "English",
-                BookRating = BookRating.Bad,
                 ReaderLevel = ReaderLevel.Elementary
             };
+            var book2Authors = new Author[] { new Author { FirstName = "AuthorFirstName2", LastName = "AuthorLastName2", Note = "AuthorNote2" },
+                                         new Author { FirstName = "AuthorFirstName3", LastName = "AuthorLastName3", Note = "AuthorNote3" }};
+            book2.Authors.Add(book2Authors[0]);
+            book2.Authors.Add(book2Authors[1]);
             var manager = EcatalogManager.GetCatalogInMamory();
 
             // Act 
             manager.AddBook(book1);
             manager.AddBook(book2);
-            var eCatBooks = manager.GetBooks(null, null, new Author[] { new Author { FirstName = "AuthorFirstName2" }, new Author { LastName = "AuthorLastName3" } }).ToArray();
-            var eCatBook2 = eCatBooks[0];
-
+            var eCatBooks = manager.GetBooks(null, (a => a.FirstName.Contains("AuthorFirst") && a.LastName.Contains("LastName3"))).ToArray();
+            var eCatBook2 = eCatBooks.FirstOrDefault();
+            var eCatBook2Authors = eCatBook2.Authors.ToArray();
             // Assert
             Assert.AreEqual(eCatBooks.Count(), 1);
-            Assert.AreEqual(eCatBook2.ISBN, book2.ISBN);
-            Assert.AreEqual(eCatBook2.Name, book2.Name);
-            Assert.AreEqual(eCatBook2.Authors.Count(), 2);
-            Assert.AreEqual(eCatBook2.Authors[0].FirstName, book2.Authors[0].FirstName);
-            Assert.AreEqual(eCatBook2.Authors[0].LastName, book2.Authors[0].LastName);
-            Assert.AreEqual(eCatBook2.Authors[0].Note, book2.Authors[0].Note);
-            Assert.AreEqual(eCatBook2.Authors[1].FirstName, book2.Authors[1].FirstName);
-            Assert.AreEqual(eCatBook2.Authors[1].LastName, book2.Authors[1].LastName);
-            Assert.AreEqual(eCatBook2.Authors[1].Note, book2.Authors[1].Note);
-            Assert.AreEqual(eCatBook2.YearOfPublication, book2.YearOfPublication);
-            Assert.AreEqual(eCatBook2.ProgrammingLanguage, book2.ProgrammingLanguage);
-            Assert.AreEqual(eCatBook2.Language, book2.Language);
-            Assert.AreEqual(eCatBook2.BookRating, book2.BookRating);
-            Assert.AreEqual(eCatBook2.ReaderLevel, book2.ReaderLevel);
+            CompareBooks(book2, eCatBook2);
         }
 
         /// <summary>
@@ -349,47 +295,35 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Arrange
             var book1 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN1,
                 Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
+            book1.Authors.Add(new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" });
             var book2 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN2,
                 Name = "DifferentName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName2", LastName = "AuthorLastName2", Note = "AuthorNote2" } },
                 ProgrammingLanguage = "F#",
                 YearOfPublication = 2010,
                 Language = "English",
-                BookRating = BookRating.Bad,
                 ReaderLevel = ReaderLevel.Elementary
             };
+            book2.Authors.Add(new Author { FirstName = "AuthorFirstName2", LastName = "AuthorLastName2", Note = "AuthorNote2" });
             var manager = EcatalogManager.GetCatalogInMamory();
 
             // Act 
             manager.AddBook(book1);
             manager.AddBook(book2);
-            var eCatBooks = manager.GetBooks(null, "fferent").ToArray();
+            var eCatBooks = manager.GetBooks(b => b.Name.Contains("fferent")).ToArray();
             var eCatBook2 = eCatBooks[0];
 
             // Assert
             Assert.AreEqual(eCatBooks.Count(), 1);
-            Assert.AreEqual(eCatBook2.ISBN, book2.ISBN);
-            Assert.AreEqual(eCatBook2.Name, book2.Name);
-            Assert.AreEqual(eCatBook2.Authors.Count(), 1);
-            Assert.AreEqual(eCatBook2.Authors[0].FirstName, book2.Authors[0].FirstName);
-            Assert.AreEqual(eCatBook2.Authors[0].LastName, book2.Authors[0].LastName);
-            Assert.AreEqual(eCatBook2.Authors[0].Note, book2.Authors[0].Note);
-            Assert.AreEqual(eCatBook2.YearOfPublication, book2.YearOfPublication);
-            Assert.AreEqual(eCatBook2.ProgrammingLanguage, book2.ProgrammingLanguage);
-            Assert.AreEqual(eCatBook2.Language, book2.Language);
-            Assert.AreEqual(eCatBook2.BookRating, book2.BookRating);
-            Assert.AreEqual(eCatBook2.ReaderLevel, book2.ReaderLevel);
+            CompareBooks(book2, eCatBook2);
         }
 
         /// <summary>
@@ -401,47 +335,37 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Arrange
             var book1 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN1,
                 Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
             var book2 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN2,
                 Name = "DifferentName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName2", LastName = "AuthorLastName2", Note = "AuthorNote2" } },
                 ProgrammingLanguage = "F#",
                 YearOfPublication = 2010,
                 Language = "English",
-                BookRating = BookRating.Bad,
                 ReaderLevel = ReaderLevel.Elementary
             };
+
+            book1.Authors.Add(new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" });
+            book2.Authors.Add(new Author { FirstName = "Author2FirstName", LastName = "Author2LastName", Note = "Author2Note" });
+
             var manager = EcatalogManager.GetCatalogInMamory();
 
             // Act 
             manager.AddBook(book1);
             manager.AddBook(book2);
-            var eCatBooks = manager.GetBooks(null, null, null, null, null, ReaderLevel.Elementary).ToArray();
+            var eCatBooks = manager.GetBooks(b => b.ReaderLevel == ReaderLevel.Elementary).ToArray();
             var eCatBook2 = eCatBooks[0];
 
             // Assert
             Assert.AreEqual(eCatBooks.Count(), 1);
-            Assert.AreEqual(eCatBook2.ISBN, book2.ISBN);
-            Assert.AreEqual(eCatBook2.Name, book2.Name);
-            Assert.AreEqual(eCatBook2.Authors.Count(), 1);
-            Assert.AreEqual(eCatBook2.Authors[0].FirstName, book2.Authors[0].FirstName);
-            Assert.AreEqual(eCatBook2.Authors[0].LastName, book2.Authors[0].LastName);
-            Assert.AreEqual(eCatBook2.Authors[0].Note, book2.Authors[0].Note);
-            Assert.AreEqual(eCatBook2.YearOfPublication, book2.YearOfPublication);
-            Assert.AreEqual(eCatBook2.ProgrammingLanguage, book2.ProgrammingLanguage);
-            Assert.AreEqual(eCatBook2.Language, book2.Language);
-            Assert.AreEqual(eCatBook2.BookRating, book2.BookRating);
-            Assert.AreEqual(eCatBook2.ReaderLevel, book2.ReaderLevel);
+            CompareBooks(book2, eCatBook2);
         }
 
         /// <summary>
@@ -453,23 +377,21 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Arrange
             var book1 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN1,
                 Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
-          
+            book1.Authors.Add(new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" });
             var manager = EcatalogManager.GetCatalogInMamory();
-            var filePath = @"c:\Test\test.xml";
+            var filePath = $@"{_testFolderPath}test.xml";
 
             // Act
             manager.AddBook(book1);
             manager.ExportCatalogToXml(filePath);
-            manager.DeleteBook(book1.ISBN);
+            manager.DeleteBook(book1.Id);
             manager.ImportCatalogFromXml(filePath);
 
             var eCatBooks = manager.GetBooks();
@@ -477,17 +399,7 @@ namespace Ecatalog.CoreApi.Tests.Concrete
 
             // Assert
             Assert.AreEqual(eCatBooks.Count(), 1);
-            Assert.AreEqual(eCatBook.ISBN, book1.ISBN);
-            Assert.AreEqual(eCatBook.Name, book1.Name);
-            Assert.AreEqual(eCatBook.Authors.Count(), 1);
-            Assert.AreEqual(eCatBook.Authors[0].FirstName, book1.Authors[0].FirstName);
-            Assert.AreEqual(eCatBook.Authors[0].LastName, book1.Authors[0].LastName);
-            Assert.AreEqual(eCatBook.Authors[0].Note, book1.Authors[0].Note);
-            Assert.AreEqual(eCatBook.YearOfPublication, book1.YearOfPublication);
-            Assert.AreEqual(eCatBook.ProgrammingLanguage, book1.ProgrammingLanguage);
-            Assert.AreEqual(eCatBook.Language, book1.Language);
-            Assert.AreEqual(eCatBook.BookRating, book1.BookRating);
-            Assert.AreEqual(eCatBook.ReaderLevel, book1.ReaderLevel);
+            CompareBooks(book1, eCatBook);
         }
 
         /// <summary>
@@ -499,41 +411,35 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Arrange
             var book1 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN1,
                 Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
+            var authors = new[]
+            {
+                new Author { FirstName = "Author1FirstName", LastName = "Author1LastName", Note = "Author1Note" },
+                new Author { FirstName = "Author2FirstName", LastName = "Author2LastName", Note = "Author2Note" }
+            };
+            book1.Authors.Add(authors[0]);
+            book1.Authors.Add(authors[1]);
 
             var manager = EcatalogManager.GetCatalogInMamory();
-            var filePath = @"c:\Test\test.json";
+            var filePath = $@"{_testFolderPath}test.json";
 
             // Act
             manager.AddBook(book1);
             manager.ExportCatalogToJson(filePath);
-            manager.DeleteBook(book1.ISBN);
+            manager.DeleteBook(book1.Id);
             manager.ImportCatalogFromJson(filePath);
 
             var eCatBooks = manager.GetBooks();
             var eCatBook = eCatBooks.FirstOrDefault();
-
             // Assert
             Assert.AreEqual(eCatBooks.Count(), 1);
-            Assert.AreEqual(eCatBook.ISBN, book1.ISBN);
-            Assert.AreEqual(eCatBook.Name, book1.Name);
-            Assert.AreEqual(eCatBook.Authors.Count(), 1);
-            Assert.AreEqual(eCatBook.Authors[0].FirstName, book1.Authors[0].FirstName);
-            Assert.AreEqual(eCatBook.Authors[0].LastName, book1.Authors[0].LastName);
-            Assert.AreEqual(eCatBook.Authors[0].Note, book1.Authors[0].Note);
-            Assert.AreEqual(eCatBook.YearOfPublication, book1.YearOfPublication);
-            Assert.AreEqual(eCatBook.ProgrammingLanguage, book1.ProgrammingLanguage);
-            Assert.AreEqual(eCatBook.Language, book1.Language);
-            Assert.AreEqual(eCatBook.BookRating, book1.BookRating);
-            Assert.AreEqual(eCatBook.ReaderLevel, book1.ReaderLevel);
+            CompareBooks(book1, eCatBook);
         }
 
         /// <summary>
@@ -545,23 +451,21 @@ namespace Ecatalog.CoreApi.Tests.Concrete
             // Arrange
             var book1 = new Book()
             {
-                ISBN = Guid.NewGuid(),
+                ISBN = _testISBN1,
                 Name = "BookName",
-                Authors = new Author[] { new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" } },
                 ProgrammingLanguage = "C#",
                 YearOfPublication = 2009,
                 Language = "English",
-                BookRating = BookRating.Good,
                 ReaderLevel = ReaderLevel.Experienced
             };
-
+            book1.Authors.Add(new Author { FirstName = "AuthorFirstName", LastName = "AuthorLastName", Note = "AuthorNote" });
             var manager = EcatalogManager.GetCatalogInMamory();
-            var filePath = @"c:\Test\test.xml";
+            var filePath = $@"{_testFolderPath}test.xml";
 
             // Act
             manager.AddBook(book1);
             manager.ExportCatalogToBinary(filePath);
-            manager.DeleteBook(book1.ISBN);
+            manager.DeleteBook(book1.Id);
             manager.ImportCatalogFromBinary(filePath);
 
             var eCatBooks = manager.GetBooks();
@@ -569,17 +473,27 @@ namespace Ecatalog.CoreApi.Tests.Concrete
 
             // Assert
             Assert.AreEqual(eCatBooks.Count(), 1);
-            Assert.AreEqual(eCatBook.ISBN, book1.ISBN);
-            Assert.AreEqual(eCatBook.Name, book1.Name);
             Assert.AreEqual(eCatBook.Authors.Count(), 1);
-            Assert.AreEqual(eCatBook.Authors[0].FirstName, book1.Authors[0].FirstName);
-            Assert.AreEqual(eCatBook.Authors[0].LastName, book1.Authors[0].LastName);
-            Assert.AreEqual(eCatBook.Authors[0].Note, book1.Authors[0].Note);
-            Assert.AreEqual(eCatBook.YearOfPublication, book1.YearOfPublication);
-            Assert.AreEqual(eCatBook.ProgrammingLanguage, book1.ProgrammingLanguage);
-            Assert.AreEqual(eCatBook.Language, book1.Language);
-            Assert.AreEqual(eCatBook.BookRating, book1.BookRating);
-            Assert.AreEqual(eCatBook.ReaderLevel, book1.ReaderLevel);
+            CompareBooks(book1, eCatBook);
+        }
+
+        private void CompareBooks(Book origBook, Book eCatBook)
+        {
+            Assert.AreEqual(eCatBook.ISBN, origBook.ISBN);
+            Assert.AreEqual(eCatBook.Name, origBook.Name);
+            Assert.AreEqual(eCatBook.Authors.Count(), origBook.Authors.Count());
+            var origAuthors = origBook.Authors.ToArray();
+            var eCatAuthors = eCatBook.Authors.ToArray();
+            for (var i = 0; i < eCatAuthors.Count(); i++)
+            {
+                Assert.AreEqual(eCatAuthors[i].FirstName, origAuthors[i].FirstName);
+                Assert.AreEqual(eCatAuthors[i].LastName, origAuthors[i].LastName);
+                Assert.AreEqual(eCatAuthors[i].Note, origAuthors[i].Note);
+            }
+            Assert.AreEqual(eCatBook.YearOfPublication, origBook.YearOfPublication);
+            Assert.AreEqual(eCatBook.ProgrammingLanguage, origBook.ProgrammingLanguage);
+            Assert.AreEqual(eCatBook.Language, origBook.Language);
+            Assert.AreEqual(eCatBook.ReaderLevel, origBook.ReaderLevel);
         }
     }
 }

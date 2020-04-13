@@ -27,40 +27,42 @@ namespace Ecatalog.ConsoleApp
         {
             if (command == Commands.ADD)
             {
-                AskBookProperties(true, false, out Guid? isbnV, out string nameV, out Author[] authors, out int? yearOfPublicationV,
-                            out string programmingLanguageV, out ReaderLevel? readerLevelV, out string languageV, out BookRating? bookRating);
-                var book = new Book
-                {
-                    ISBN = (Guid)isbnV,
-                    Name = nameV,
-                    Authors = authors,
-                    YearOfPublication = (int)yearOfPublicationV,
-                    ProgrammingLanguage = programmingLanguageV,
-                    ReaderLevel = (ReaderLevel)readerLevelV,
-                    Language = languageV,
-                    BookRating = (BookRating)bookRating
-                };
+                AskBookProperties(true, false, out Book book);
                 eCatalog.AddBook(book);
                 _logger.Info(LocalizedStrings.BookAdded);
             }
             else if (command == Commands.EDIT)
             {
-                AskBookProperties(false, true, out Guid? isbnV, out string nameV, out Author[] authors, out int? yearOfPublicationV,
-                            out string programmingLanguageV, out ReaderLevel? readerLevelV, out string languageV, out BookRating? bookRating);
-                eCatalog.EditBook((Guid)isbnV, nameV, authors, yearOfPublicationV, programmingLanguageV, readerLevelV, languageV, bookRating);
+                AskBookProperties(false, true, out Book book);
+                eCatalog.EditBook(book);
                 _logger.Info(LocalizedStrings.BookEdited);
             }
             else if (command == Commands.DELETE)
             {
                 var isbn = AskIsbn(true);
-                eCatalog.DeleteBook((Guid)isbn);
+                var book = eCatalog.GetBooks(b => b.ISBN == isbn).FirstOrDefault();
+                eCatalog.DeleteBook(book.Id);
                 _logger.Info(LocalizedStrings.BookDeleted);
             }
             else if (command == Commands.GET)
             {
-                AskBookProperties(false, false, out Guid? isbnV, out string nameV, out Author[] authors, out int? yearOfPublicationV,
-                            out string programmingLanguageV, out ReaderLevel? readerLevelV, out string languageV, out BookRating? bookRating);
-                var books = eCatalog.GetBooks(isbnV, nameV, authors, yearOfPublicationV, programmingLanguageV, readerLevelV, languageV, bookRating);
+                AskBookProperties(false, false, out Book book);
+                var books = eCatalog.GetBooks(s =>
+                    (book.ISBN != null && s.ISBN == book.ISBN) ||
+                    (book.Name != null && s.Name.Contains(book.Name)) ||
+                    (book.Language != null && s.Language == book.Language) ||
+                    (book.ProgrammingLanguage != null && s.ProgrammingLanguage.Contains(book.ProgrammingLanguage)) ||
+                    (book.YearOfPublication != null && s.YearOfPublication == book.YearOfPublication) ||
+                    (book.ReaderLevel != null && s.ReaderLevel == book.ReaderLevel),
+
+                    a => book.Authors.Any(b => !string.IsNullOrEmpty(b.FirstName) || !string.IsNullOrEmpty(b.LastName) || !string.IsNullOrEmpty(b.Note)) 
+                    ? (
+                        (book.Authors.Select(f => f.FirstName).Where(w => !string.IsNullOrEmpty(w)).Contains(a.FirstName)) ||
+                        (book.Authors.Select(f => f.LastName).Where(w => !string.IsNullOrEmpty(w)).Contains(a.LastName)) ||
+                        (book.Authors.Select(f => f.Note).Where(w => !string.IsNullOrEmpty(w)).Contains(a.Note))
+                      ) 
+                    : true                    
+                    );
                 _logger.Info($"{LocalizedStrings.BookRetrieved} {books.Count()}. {LocalizedStrings.ShortList}:");
                 _logger.Info(books.Select(s => $"{Environment.NewLine}ISBN:'{s.ISBN}', '{s.Name}', {LocalizedStrings.PreAuthors} {string.Join($" {LocalizedStrings.And} ", s.Authors?.Select(a => a?.ToShortString()).ToArray())}"));
             }
@@ -103,11 +105,11 @@ namespace Ecatalog.ConsoleApp
         private static string AskXmlFilePathAndName()
         {
             var filePathReg = $"{FILE_PATH_AND_NAME_BASE}xml$";
-            Console.Write(LocalizedStrings.AskXmlFilePathAndName);
+            Hepler.WriteColoredLine(LocalizedStrings.AskXmlFilePathAndName, ConsoleColor.Yellow);
             var filePathAndName = Console.ReadLine().Trim();
             while (!Regex.IsMatch(filePathAndName, filePathReg))
             {
-                Console.WriteLine(LocalizedStrings.AskXmlFilePathAndName);
+                Hepler.WriteColoredLine(LocalizedStrings.AskXmlFilePathAndName, ConsoleColor.Yellow);
                 filePathAndName = Console.ReadLine().Trim();
             }
             return filePathAndName;
@@ -120,11 +122,11 @@ namespace Ecatalog.ConsoleApp
         private static string AskJsonFilePathAndName()
         {
             var filePathReg = $"{FILE_PATH_AND_NAME_BASE}json$";
-            Console.Write(LocalizedStrings.AskJsonFilePathAndName);
+            Hepler.WriteColoredLine(LocalizedStrings.AskJsonFilePathAndName, ConsoleColor.Yellow);
             var filePathAndName = Console.ReadLine().Trim();
             while (!Regex.IsMatch(filePathAndName, filePathReg))
             {
-                Console.WriteLine(LocalizedStrings.AskJsonFilePathAndName);
+                Hepler.WriteColoredLine(LocalizedStrings.AskJsonFilePathAndName, ConsoleColor.Yellow);
                 filePathAndName = Console.ReadLine().Trim();
             }
             return filePathAndName;
@@ -137,11 +139,11 @@ namespace Ecatalog.ConsoleApp
         private static string AskDatFilePathAndName()
         {
             var filePathReg = $"{FILE_PATH_AND_NAME_BASE}dat$";
-            Console.Write(LocalizedStrings.AskDatFilePathAndName);
+            Hepler.WriteColoredLine(LocalizedStrings.AskDatFilePathAndName, ConsoleColor.Yellow);
             var filePathAndName = Console.ReadLine().Trim();
             while (!Regex.IsMatch(filePathAndName, filePathReg))
             {
-                Console.WriteLine(LocalizedStrings.AskDatFilePathAndName);
+                Hepler.WriteColoredLine(LocalizedStrings.AskDatFilePathAndName, ConsoleColor.Yellow);
                 filePathAndName = Console.ReadLine().Trim();
             }
             return filePathAndName;
@@ -151,19 +153,16 @@ namespace Ecatalog.ConsoleApp
         /// Ask ISBN number from console and validate it
         /// </summary>
         /// <returns>Valid string with ISBN number</returns>
-        private static Guid? AskIsbn(bool isMandatory)
+        private static string AskIsbn(bool isMandatory)
         {
-            Console.WriteLine(LocalizedStrings.AskISBN);
+            Hepler.WriteColoredLine(LocalizedStrings.AskISBN, ConsoleColor.Yellow);
             var isbn = Console.ReadLine().Trim();
-            Guid isbnV = Guid.Empty;
-
-            while ((isMandatory && (string.IsNullOrEmpty(isbn) || !Guid.TryParse(isbn, out isbnV))
-                || (!isMandatory && (!string.IsNullOrEmpty(isbn) && !Guid.TryParse(isbn, out isbnV)))))
+            while (isMandatory && (string.IsNullOrEmpty(isbn)))
             {
-                Console.WriteLine(LocalizedStrings.AskISBN);
+                Hepler.WriteColoredLine(LocalizedStrings.AskISBN, ConsoleColor.Yellow);
                 isbn = Console.ReadLine().Trim();
             }
-            return isbnV != Guid.Empty ? (Guid?)isbnV : null;
+            return isbn;
         }
 
         /// <summary>
@@ -172,27 +171,27 @@ namespace Ecatalog.ConsoleApp
         /// <returns>Valid Author object</returns>
         private static Author AskAuthors(bool isMandatory)
         {
-            Console.WriteLine(LocalizedStrings.AskAuthorFirstName);
+            Hepler.WriteColoredLine(LocalizedStrings.AskAuthorFirstName, ConsoleColor.Yellow);
             var firstName = Console.ReadLine().Trim();
             while (isMandatory && string.IsNullOrEmpty(firstName))
             {
-                Console.WriteLine(LocalizedStrings.AskAuthorFirstName);
+                Hepler.WriteColoredLine(LocalizedStrings.AskAuthorFirstName, ConsoleColor.Yellow);
                 firstName = Console.ReadLine().Trim();
             }
 
-            Console.WriteLine(LocalizedStrings.AskAuthorLastName);
+            Hepler.WriteColoredLine(LocalizedStrings.AskAuthorLastName, ConsoleColor.Yellow);
             var lastName = Console.ReadLine().Trim();
             while (isMandatory && string.IsNullOrEmpty(lastName))
             {
-                Console.WriteLine(LocalizedStrings.AskAuthorLastName);
+                Hepler.WriteColoredLine(LocalizedStrings.AskAuthorLastName, ConsoleColor.Yellow);
                 lastName = Console.ReadLine().Trim();
             }
 
-            Console.WriteLine(LocalizedStrings.AskAuthorNote);
+            Hepler.WriteColoredLine(LocalizedStrings.AskAuthorNote, ConsoleColor.Yellow);
             var note = Console.ReadLine().Trim();
             while (isMandatory && string.IsNullOrEmpty(note))
             {
-                Console.WriteLine(LocalizedStrings.AskAuthorNote);
+                Hepler.WriteColoredLine(LocalizedStrings.AskAuthorNote, ConsoleColor.Yellow);
                 note = Console.ReadLine().Trim();
             }
             return new Author { FirstName = firstName, LastName = lastName, Note = note };
@@ -203,111 +202,104 @@ namespace Ecatalog.ConsoleApp
         /// </summary>
         /// <param name="isAdd">Is it ADD command</param>
         /// <param name="isEdit">Is it EDIT command</param>
-        /// <param name="isbnV">ISBN number</param>
-        /// <param name="nameV">Name of the book</param>
-        /// <param name="authors">Authors</param>
-        /// <param name="yearOfPublicationV">Year of the book publication</param>
-        /// <param name="programmingLanguageV">Programming language in the book</param>
-        /// <param name="readerLevelV">Reader level</param>
-        /// <param name="languageV">Language of the book</param>
-        /// <param name="bookRatingV">Book rating</param>
-        private static void AskBookProperties(bool isAdd, bool isEdit, out Guid? isbnV, out string nameV, out Author[] authors, out int? yearOfPublicationV,
-            out string programmingLanguageV, out ReaderLevel? readerLevelV, out string languageV, out BookRating? bookRatingV)
+        /// <param name="Book">Book object with properties</param>
+        private static void AskBookProperties(bool isAdd, bool isEdit, out Book book)
         {
             if (isAdd)
             {
-                Console.WriteLine(LocalizedStrings.AddMandatory);
+                Hepler.WriteColoredLine(LocalizedStrings.AddMandatory, ConsoleColor.Yellow);
             }
             if (isEdit)
             {
-                Console.WriteLine(LocalizedStrings.EditMandatory);
+                Hepler.WriteColoredLine(LocalizedStrings.EditMandatory, ConsoleColor.Yellow);
             }
+            book = new Book();
 
             // ISBN
-            isbnV = AskIsbn(isAdd || isEdit);
+            book.ISBN = AskIsbn(isAdd || isEdit);
 
             // Name
-            Console.WriteLine(LocalizedStrings.AskName);
-            nameV = Console.ReadLine().Trim();
-            while (isAdd && string.IsNullOrEmpty(nameV))
+            Hepler.WriteColoredLine(LocalizedStrings.AskName, ConsoleColor.Yellow);
+            book.Name = Console.ReadLine().Trim();
+            while (isAdd && string.IsNullOrEmpty(book.Name))
             {
-                Console.WriteLine(LocalizedStrings.AskName);
-                nameV = Console.ReadLine().Trim();
+                Hepler.WriteColoredLine(LocalizedStrings.AskName, ConsoleColor.Yellow);
+                book.Name = Console.ReadLine().Trim();
             }
 
             // Authors
-            var authorsList = new List<Author>
-            {
-                AskAuthors(isAdd)
-            };
-            Console.WriteLine(LocalizedStrings.AskForAddAuthor);
+            book.Authors.Add(AskAuthors(isAdd));
+            Hepler.WriteColoredLine(LocalizedStrings.AskForAddAuthor, ConsoleColor.Yellow);
             var answer = Console.ReadLine().Trim().ToUpper();
             while (answer == LocalizedStrings.AnswerYes.ToUpper())
             {
-                authorsList.Add(AskAuthors(isAdd));
-                Console.WriteLine(LocalizedStrings.AskForAddAuthor);
+                book.Authors.Add(AskAuthors(isAdd));
+                Hepler.WriteColoredLine(LocalizedStrings.AskForAddAuthor, ConsoleColor.Yellow);
                 answer = Console.ReadLine().Trim();
             }
-            authors = authorsList.ToArray();
 
             // Year of publication
-            Console.WriteLine(LocalizedStrings.AskYearOfPublication);
+            Hepler.WriteColoredLine(LocalizedStrings.AskYearOfPublication, ConsoleColor.Yellow);
             var yearOfPublication = Console.ReadLine().Trim();
             int yearOfPublicationInt = int.MinValue;
 
             while ((isAdd && (string.IsNullOrEmpty(yearOfPublication) || !int.TryParse(yearOfPublication, out yearOfPublicationInt))
                 || (!isAdd && (!string.IsNullOrEmpty(yearOfPublication) && !int.TryParse(yearOfPublication, out yearOfPublicationInt)))))
             {
-                Console.WriteLine(LocalizedStrings.AskYearOfPublication);
+                Hepler.WriteColoredLine(LocalizedStrings.AskYearOfPublication, ConsoleColor.Yellow);
                 yearOfPublication = Console.ReadLine().Trim();
             }
-            yearOfPublicationV = !string.IsNullOrEmpty(yearOfPublication) ? (int?)yearOfPublicationInt : null;
+            book.YearOfPublication = !string.IsNullOrEmpty(yearOfPublication) ? (int?)yearOfPublicationInt : null;
 
             // Programming Language
-            Console.WriteLine(LocalizedStrings.AskProgrammingLanguage);
-            programmingLanguageV = Console.ReadLine().Trim();
-            while (isAdd && string.IsNullOrEmpty(programmingLanguageV))
+            Hepler.WriteColoredLine(LocalizedStrings.AskProgrammingLanguage, ConsoleColor.Yellow);
+            book.ProgrammingLanguage = Console.ReadLine().Trim();
+            while (isAdd && string.IsNullOrEmpty(book.ProgrammingLanguage))
             {
-                Console.WriteLine(LocalizedStrings.AskProgrammingLanguage);
-                programmingLanguageV = Console.ReadLine().Trim();
+                Hepler.WriteColoredLine(LocalizedStrings.AskProgrammingLanguage, ConsoleColor.Yellow);
+                book.ProgrammingLanguage = Console.ReadLine().Trim();
             }
-            programmingLanguageV = !string.IsNullOrEmpty(programmingLanguageV) ? programmingLanguageV : null;
 
             // Reader level
-            Console.WriteLine(LocalizedStrings.AskReaderLevel);
+            Hepler.WriteColoredLine(LocalizedStrings.AskReaderLevel, ConsoleColor.Yellow);
             var readerLevel = Console.ReadLine().Trim();
             int readerLevelInt = int.MinValue;
 
-            while ((isAdd && (string.IsNullOrEmpty(readerLevel) || !int.TryParse(readerLevel, out readerLevelInt) || !Enum.IsDefined(typeof(ReaderLevel), readerLevelInt))
-                || (!isAdd && (!string.IsNullOrEmpty(readerLevel) && (!int.TryParse(readerLevel, out readerLevelInt) || !Enum.IsDefined(typeof(ReaderLevel), readerLevel))))))
+            while ((isAdd && (string.IsNullOrEmpty(readerLevel)
+                    || !int.TryParse(readerLevel, out readerLevelInt)
+                    || !Enum.IsDefined(typeof(ReaderLevel), readerLevelInt))
+                || (!isAdd && (!string.IsNullOrEmpty(readerLevel)
+                    && (!int.TryParse(readerLevel, out readerLevelInt)
+                    || !Enum.IsDefined(typeof(ReaderLevel), readerLevel)))))
+                  )
             {
-                Console.WriteLine(LocalizedStrings.AskReaderLevel);
+                Hepler.WriteColoredLine(LocalizedStrings.AskReaderLevel, ConsoleColor.Yellow);
                 readerLevel = Console.ReadLine().Trim();
             }
-            readerLevelV = !string.IsNullOrEmpty(readerLevel) ? (ReaderLevel?)readerLevelInt : null;
+            book.ReaderLevel = !string.IsNullOrEmpty(readerLevel) ? (ReaderLevel?)readerLevelInt : null;
 
             // Language
-            Console.WriteLine(LocalizedStrings.AskLanguage);
-            languageV = Console.ReadLine().Trim();
-            while (isAdd && string.IsNullOrEmpty(languageV))
+            Hepler.WriteColoredLine(LocalizedStrings.AskLanguage, ConsoleColor.Yellow);
+            book.Language = Console.ReadLine().Trim();
+            while (isAdd && string.IsNullOrEmpty(book.Language))
             {
-                Console.WriteLine(LocalizedStrings.AskLanguage);
-                languageV = Console.ReadLine().Trim();
+                Hepler.WriteColoredLine(LocalizedStrings.AskLanguage, ConsoleColor.Yellow);
+                book.Language = Console.ReadLine().Trim();
             }
-            languageV = !string.IsNullOrEmpty(languageV) ? languageV : null;
+            book.Language = !string.IsNullOrEmpty(book.Language) ? book.Language : null;
 
-            // Book Rating
-            Console.WriteLine(LocalizedStrings.AskBookRating);
-            var bookRating = Console.ReadLine().Trim();
-            var bookRatingInt = int.MinValue;
+            //// Book Rating
+            //Console.WriteLine(LocalizedStrings.AskBookRating);
+            //var bookRating = Console.ReadLine().Trim();
+            //var bookRatingInt = int.MinValue;
 
-            while ((isAdd && (string.IsNullOrEmpty(bookRating) || !int.TryParse(bookRating, out bookRatingInt) || !Enum.IsDefined(typeof(BookRating), bookRatingInt))
-                || (!isAdd && (!string.IsNullOrEmpty(bookRating) && (!int.TryParse(bookRating, out bookRatingInt) || !Enum.IsDefined(typeof(BookRating), bookRatingInt))))))
-            {
-                Console.WriteLine(LocalizedStrings.AskBookRating);
-                bookRating = Console.ReadLine().Trim();
-            }
-            bookRatingV = !string.IsNullOrEmpty(bookRating) ? (BookRating?)bookRatingInt : null;
+            //while ((isAdd && (string.IsNullOrEmpty(bookRating) || !int.TryParse(bookRating, out bookRatingInt) || !Enum.IsDefined(typeof(BookRating), bookRatingInt))
+            //    || (!isAdd && (!string.IsNullOrEmpty(bookRating) && (!int.TryParse(bookRating, out bookRatingInt) || !Enum.IsDefined(typeof(BookRating), bookRatingInt))))))
+            //{
+            //    Console.WriteLine(LocalizedStrings.AskBookRating);
+            //    bookRating = Console.ReadLine().Trim();
+            //}
+            //book. = !string.IsNullOrEmpty(bookRating) ? (BookRating?)bookRatingInt : null;
         }
     }
 }

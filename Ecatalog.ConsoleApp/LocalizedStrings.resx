@@ -145,7 +145,7 @@
     <value>Do you want to add one more author? Enter "Yes" for it</value>
   </data>
   <data name="AskISBN" xml:space="preserve">
-    <value>Enter the ISBN code of the book (GUID format only):</value>
+    <value>Enter the ISBN code of the book:</value>
   </data>
   <data name="AskJsonFilePathAndName" xml:space="preserve">
     <value>Specify the full path to the file (for example c:\Test\test.json)</value>
@@ -185,7 +185,7 @@
   </data>
   <data name="CommandsDescription" xml:space="preserve">
     <value>Select the command to continue:
-Add - add a new book to the catalog,
+ADD - add a new book to the catalog,
 EDIT - edit the entry in the electronic catalogue
 DELETE - delete a book entry from the electronic catalog
 GET - get a list of books from the electronic catalog (filters are available)

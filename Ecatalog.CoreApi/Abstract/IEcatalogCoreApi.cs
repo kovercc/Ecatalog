@@ -10,44 +10,59 @@ namespace Ecatalog.CoreApi.Abstract
     public interface IEcatalogCoreApi
     {
         /// <summary>
+        /// Add new author to e-catalog
+        /// </summary>
+        /// <param name="author">Author object with data</param>
+        /// <returns>Author's guid in e-catalog</returns>
+        Guid AddAuthor(Author author);
+
+        /// <summary>
+        /// Edit author data
+        /// </summary>
+        /// <param name="updatedAuthor">updates for author in object</param>
+        void EditAuthor(Author updatedAuthor);
+
+        /// <summary>
+        /// Delete author from catalog
+        /// </summary>
+        /// <param name="id">Author Id</param>
+        void DeleteAuthor(Guid id);
+
+        /// <summary>
         /// Add Book to e-catalog
         /// </summary>
         /// <param name="book">Book object with data</param>
-        void AddBook(Book book);
+        /// <returns>Book's guid in e-catalog</returns>
+        Guid AddBook(Book book);
 
         /// <summary>
-        /// Edit Book in e-catalog
+        /// Update Book properties
         /// </summary>
-        /// <param name="isbn">ISBN code of the book in e-Catalog</param>
-        /// <param name="name">Name of the book</param>
-        /// <param name="authors">Array of Authors of the book</param>
-        /// <param name="yearOfPublication">The year of the publication</param>
-        /// <param name="programmingLanguage">Programming language which describes in the book</param>
-        /// <param name="readerLevel">The book reader level</param>
-        /// <param name="language">The language of the book</param>
-        /// <param name="bookRating">The book rating</param>
-        void EditBook(Guid isbn, string name = null, Author[] authors = null, int? yearOfPublication = null, string programmingLanguage = null,
-            ReaderLevel? readerLevel = null, string language = null, BookRating? bookRating = null);
+        /// <param name="updatedBook">Book object with updated properties</param>
+        void EditBook(Book updatedBook);
 
         /// <summary>
         /// Delete book from e-catalog
         /// </summary>
-        /// <param name="isbn">ISBN code of the Book in e-Catalog</param>
-        void DeleteBook(Guid isbn);
+        /// <param name="bookId">Guid of the Book in e-Catalog</param>
+        public void DeleteBook(Guid bookId);
+
 
         /// <summary>
-        /// Get books from e-catalog by filters
+        /// Get books from e-catalog by book and author filters
         /// </summary>
-        /// <param name="isbn">ISBN code of the book in e-Catalog</param>
-        /// <param name="name">Name of the book</param>
-        /// <param name="authors">Array of Authors of the book</param>
-        /// <param name="yearOfPublication">The year of the publication</param>
-        /// <param name="programmingLanguage">Programming language which describes in the book</param>
-        /// <param name="readerLevel">The book reader level</param>
-        /// <param name="language">The language of the book</param>
-        /// <param name="bookRating">The book rating</param>
+        /// <param name="bookFilter">Book filter function</param>
+        /// <param name="authorFilter">Author filter function</param>
         /// <returns>Collection of the books from e-catalog</returns>
-        IEnumerable<Book> GetBooks(Guid? isbn = null, string name = null, Author[] authors = null, int? yearOfPublication = null, string programmingLanguage = null, ReaderLevel? readerLevel = null, string language = null, BookRating? bookRating = null);
+        IEnumerable<Book> GetBooks(Func<Book, bool> bookFilter = null, Func<Author, bool> authorFilter = null);
+
+        /// <summary>
+        /// Get authors from e-catalog by author and book filters
+        /// </summary>
+        /// <param name="authorFilter">Author filter function</param>
+        /// <param name="bookFilter">Book filter function</param>
+        /// <returns>Collection of the authors from e-catalog</returns>
+        IEnumerable<Author> GetAuthors(Func<Author, bool> authorFilter = null, Func<Book, bool> bookFilter = null);
 
         /// <summary>
         /// Export e-catalog to xml file (.xml)
